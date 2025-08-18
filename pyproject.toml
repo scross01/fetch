@@ -1,0 +1,12 @@
+[project]
+name = "fetch"
+version = "0.1.0"
+description = "Fetch URL to Text"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cloudscraper>=1.2.71",
+    "html2text>=2025.4.15",
+    "readability-lxml>=0.8.4.1",
+]
+
