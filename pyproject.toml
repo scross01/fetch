@@ -8,6 +8,7 @@ dependencies = [
     "cloudscraper>=1.2.71",
     "html2text>=2025.4.15",
     "readability-lxml>=0.8.4.1",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [project.scripts]

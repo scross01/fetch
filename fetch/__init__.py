@@ -13,6 +13,7 @@ def main():
     parser.add_argument("url", nargs="?", help="URL to fetch and convert")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--raw", action="store_true", help="include the full response data")
+    parser.add_argument("--favicon", action="store_true", help="extract favicon URLs instead of converting to markdown")
 
     args = parser.parse_args()
 
@@ -21,11 +22,16 @@ def main():
 
     logger.info(f"Fetching: {args.url}")
     scraper = create_scraper(debug=args.raw)
-    text = fetch(args.url, scraper)
+    result = fetch(args.url, scraper, favicon=args.favicon)
     print()
 
-    if text:
-        print(text)
+    if result:
+        if args.favicon:
+            print("Found favicon URLs:")
+            for i, favicon_url in enumerate(result, 1):
+                print(f"{i}. {favicon_url}")
+        else:
+            print(result)
 
 
 if __name__ == "__main__":
