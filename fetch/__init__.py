@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--raw", action="store_true", help="include the full response data")
     parser.add_argument("--favicon", action="store_true", help="extract favicon URLs instead of converting to markdown")
+    parser.add_argument("--max-size", type=int, metavar="N", help="truncate output to N characters")
 
     args = parser.parse_args()
 
@@ -31,6 +32,8 @@ def main():
             for i, favicon_url in enumerate(result, 1):
                 print(f"{i}. {favicon_url}")
         else:
+            if args.max_size is not None and len(result) > args.max_size:
+                result = result[:args.max_size]
             print(result)
 
 
