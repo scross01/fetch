@@ -9,6 +9,7 @@ dependencies = [
     "html2text>=2025.4.15",
     "readability-lxml>=0.8.4.1",
     "beautifulsoup4>=4.12.0",
+    "trafilatura>=2.0.0",
 ]
 
 [project.scripts]
@@ -16,6 +17,9 @@ fetch = "fetch:main"
 
 [tool.uv]
 package = true
+
+[tool.setuptools]
+packages = ["fetch"]
 
 [tool.setuptools.dynamic]
 version = {attr = "fetch.__version__.__version__"}

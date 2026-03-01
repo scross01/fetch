@@ -3,6 +3,9 @@ from html2text import html2text
 from readability import Document
 from bs4 import BeautifulSoup
 import urllib.parse
+from .extractors import extract_with_trafilatura, extract_with_readability, should_exclude_comments
+from .classifier import classify_page
+from .types import PageType
 
 
 def create_scraper(debug=False):
@@ -32,15 +35,57 @@ def fetch_page(url, scraper=None):
         return None, None
 
 
-def convert_to_markdown(html_content, url):
-    """Convert HTML content to markdown using html2text."""
+def convert_to_markdown(html_content, url, include_comments=None, page_type=None):
+    """Convert HTML content to markdown using intelligent extraction.
+    
+    Args:
+        html_content: Raw HTML content
+        url: Base URL for resolving relative links
+        include_comments: Override for comment inclusion (None = auto-detect)
+        page_type: Manually specified page type (None = auto-detect)
+        
+    Returns:
+        Formatted markdown string with extracted content
+    """
     try:
-        doc = Document(html_content)
-        text = html2text(doc.summary(), baseurl=url, bodywidth=0)
-        return f"# {doc.title()}\n\n{text}"
+        # Determine page type if not provided
+        if page_type is None:
+            page_type = classify_page(html_content, url)
+        
+        # Choose extraction strategy based on page type and user preference
+        if include_comments is not None:
+            # User explicitly specified comment preference
+            result = extract_with_trafilatura(
+                html_content, url, include_comments=include_comments
+            )
+        elif page_type == PageType.ARTICLE:
+            # Articles typically don't need comments
+            result = extract_with_trafilatura(
+                html_content, url, include_comments=False
+            )
+        elif page_type in (PageType.FORUM, PageType.QA):
+            # Forums and Q&A pages need comments for completeness
+            result = extract_with_trafilatura(
+                html_content, url, include_comments=True
+            )
+        else:
+            # Unknown page type - try with comments first
+            result = extract_with_trafilatura(
+                html_content, url, include_comments=True
+            )
+            
+            # If result seems too long or contains too much noise, retry without comments
+            if should_exclude_comments(result):
+                result = extract_with_trafilatura(
+                    html_content, url, include_comments=False
+                )
+        
+        return result
+        
     except Exception as e:
         print(f"[red]Error converting to markdown:[/red] {e}")
-        return None
+        # Fallback to original readability-based extraction
+        return extract_with_readability(html_content, url)
 
 
 def extract_favicons(html_content, base_url):
@@ -104,8 +149,19 @@ def extract_favicons(html_content, base_url):
         return []
 
 
-def fetch(url, scraper=None, favicon=False):
-    """Main fetch function - either returns markdown or favicon URLs."""
+def fetch(url, scraper=None, favicon=False, include_comments=None, page_type=None):
+    """Main fetch function - either returns markdown or favicon URLs.
+    
+    Args:
+        url: URL to fetch
+        scraper: Custom scraper instance (optional)
+        favicon: If True, extract favicon URLs instead of content
+        include_comments: Override for comment inclusion (None = auto-detect)
+        page_type: Manually specified page type (None = auto-detect)
+        
+    Returns:
+        Extracted content or favicon URLs
+    """
     html_content, final_url = fetch_page(url, scraper)
     if html_content is None:
         return None
@@ -113,4 +169,9 @@ def fetch(url, scraper=None, favicon=False):
     if favicon:
         return extract_favicons(html_content, final_url or url)
     else:
-        return convert_to_markdown(html_content, final_url or url)
+        return convert_to_markdown(
+            html_content,
+            final_url or url,
+            include_comments=include_comments,
+            page_type=page_type
+        )
