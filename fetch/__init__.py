@@ -28,6 +28,12 @@ def main():
         help="look for RSS/Atom feed in page metadata and fetch it",
     )
     parser.add_argument(
+        "--og",
+        "--opengraph",
+        action="store_true",
+        help="extract Open Graph metadata from the page",
+    )
+    parser.add_argument(
         "--max-size", type=int, metavar="N", help="truncate output to N characters"
     )
     parser.add_argument(
@@ -89,6 +95,12 @@ def main():
     if args.rss and args.favicon:
         parser.error("Cannot specify both --rss and --favicon")
 
+    if args.og and args.favicon:
+        parser.error("Cannot specify both --og and --favicon")
+
+    if args.og and args.rss:
+        parser.error("Cannot specify both --og and --rss")
+
     logger.info(f"Fetching: {args.url}")
     scraper = create_scraper(debug=args.raw)
 
@@ -109,6 +121,7 @@ def main():
         scraper,
         favicon=args.favicon,
         rss=args.rss,
+        og=args.og,
         include_comments=include_comments,
         page_type=page_type,
         output_format=args.format,

@@ -16,6 +16,7 @@ from .classifier import classify_page
 from .github import handle_github_url
 from .youtube import handle_youtube_url
 from .rss import handle_rss_content, fetch_feed_from_html
+from .opengraph import extract_og_metadata
 from .types import PageType
 
 
@@ -210,6 +211,7 @@ def fetch(
     scraper=None,
     favicon=False,
     rss=False,
+    og=False,
     include_comments=None,
     page_type=None,
     output_format="markdown",
@@ -222,6 +224,7 @@ def fetch(
         scraper: Custom scraper instance (optional)
         favicon: If True, extract favicon URLs instead of content
         rss: If True, look for RSS/Atom feed in page metadata and fetch it
+        og: If True, extract Open Graph metadata instead of content
         include_comments: Override for comment inclusion (None = auto-detect)
         page_type: Manually specified page type (None = auto-detect)
         output_format: Output format - "markdown" or "txt" (default: "markdown")
@@ -230,7 +233,7 @@ def fetch(
     Returns:
         Extracted content or favicon URLs
     """
-    if not favicon and not rss:
+    if not favicon and not rss and not og:
         github_result = handle_github_url(url, scraper, timeout=timeout)
         if github_result is not None:
             return github_result
@@ -245,6 +248,11 @@ def fetch(
 
     if favicon:
         return extract_favicons(html_content, final_url or url)
+
+    if og:
+        return extract_og_metadata(
+            html_content, final_url or url, output_format=output_format
+        )
 
     if rss:
         rss_result = fetch_feed_from_html(

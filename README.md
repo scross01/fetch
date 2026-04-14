@@ -11,6 +11,7 @@ A command-line tool to fetch web pages and convert them to clean, readable text.
 - GitHub URLs: fetch READMEs, raw files, issues, and pull requests
 - YouTube URLs: extract video transcripts (no API key needed)
 - RSS/Atom feeds: auto-detect feeds or discover them from page metadata
+- Open Graph metadata: extract og: tags from any web page
 - Configurable timeout, output to file, quiet mode for piping
 - Extract favicon URLs from web pages
 
@@ -123,6 +124,23 @@ fetch --format json https://example.com/feed.xml
 fetch --format txt https://example.com/feed.xml
 ```
 
+### Open Graph Metadata
+
+Extract Open Graph (`og:*`) metadata tags from any web page. Useful for getting link previews, social sharing info, and structured page data.
+
+```bash
+# Extract OG metadata as markdown
+fetch --og https://example.com
+
+# As JSON
+fetch --og --format json https://example.com
+
+# As plain text
+fetch --og --format txt https://example.com
+```
+
+Extracts tags like `og:title`, `og:description`, `og:image`, `og:type`, `og:url`, `og:site_name`, and any other `og:*` properties present on the page.
+
 ## Command Line Options
 
 | Option | Description |
@@ -135,6 +153,7 @@ fetch --format txt https://example.com/feed.xml
 | `--max-size` | Truncate output to N characters |
 | `--favicon` | Extract favicon URLs instead of content |
 | `--rss` | Look for RSS/Atom feed in page metadata and fetch it |
+| `--og` | Extract Open Graph metadata from the page |
 | `--raw` | Include full response data (debugging) |
 | `--version` | Show version |
 
@@ -176,3 +195,7 @@ Two modes of operation:
 - **`--rss` flag** — Fetches a regular web page, discovers feed URLs from `<link rel="alternate">` tags in the HTML `<head>`, then fetches and formats the first valid feed
 
 Supports RSS 2.0, Atom, and RDF feeds. Output respects the `--format` flag (markdown, txt, html, json).
+
+### Open Graph Metadata
+
+Fetches the page HTML and extracts all `<meta property="og:*">` tags. Relative URLs in fields like `og:image` and `og:url` are resolved to absolute URLs. Output respects the `--format` flag (markdown, txt, html, json).
