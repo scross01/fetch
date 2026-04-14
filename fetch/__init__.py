@@ -1,11 +1,10 @@
 import argparse
 import logging
+import sys
 from .core import fetch, create_scraper
 from .__version__ import __version__
 from .types import PageType
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +24,25 @@ def main():
     )
     parser.add_argument(
         "--max-size", type=int, metavar="N", help="truncate output to N characters"
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        metavar="FILE",
+        help="write output to FILE instead of stdout",
+    )
+    parser.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress status messages",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=30,
+        metavar="SECONDS",
+        help="HTTP request timeout in seconds (default: 30)",
     )
 
     # Content extraction options
@@ -52,6 +70,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    log_level = logging.WARNING if args.quiet else logging.INFO
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
 
     if not args.url:
         parser.error("URL is required")
@@ -82,18 +103,28 @@ def main():
         include_comments=include_comments,
         page_type=page_type,
         output_format=args.format,
+        timeout=args.timeout,
     )
-    print()
 
     if result:
         if args.favicon:
-            print("Found favicon URLs:")
+            output_lines = []
+            if not args.quiet:
+                output_lines.append("Found favicon URLs:")
             for i, favicon_url in enumerate(result, 1):
-                print(f"{i}. {favicon_url}")
+                output_lines.append(f"{i}. {favicon_url}")
+            output_text = "\n".join(output_lines)
         else:
             if args.max_size is not None and len(result) > args.max_size:
                 result = result[: args.max_size]
-            print(result)
+            output_text = result
+
+        if args.output:
+            with open(args.output, "w") as f:
+                f.write(output_text)
+                f.write("\n")
+        else:
+            print(output_text)
 
 
 if __name__ == "__main__":

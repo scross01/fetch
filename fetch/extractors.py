@@ -1,6 +1,7 @@
 """Content extraction strategies for different types of web pages."""
 
 import re
+import sys
 from html2text import html2text
 from readability import Document
 from bs4 import BeautifulSoup
@@ -94,11 +95,15 @@ def extract_with_trafilatura(
             )
 
     except ImportError:
-        print("Warning: Trafilatura not available, falling back to readability")
+        print(
+            "Warning: Trafilatura not available, falling back to readability",
+            file=sys.stderr,
+        )
         return extract_with_readability(html_content, url, output_format=output_format)
     except Exception as e:
         print(
-            f"Warning: Trafilatura extraction failed: {e}, falling back to readability"
+            f"Warning: Trafilatura extraction failed: {e}, falling back to readability",
+            file=sys.stderr,
         )
         return extract_with_readability(html_content, url, output_format=output_format)
 
@@ -128,7 +133,7 @@ def extract_with_readability(html_content, url, output_format="markdown"):
             text = html2text(doc.summary(), baseurl=url, bodywidth=0)
             return f"# {doc.title()}\n\n{text}"
     except Exception as e:
-        print(f"Error extracting content with readability: {e}")
+        print(f"Error extracting content with readability: {e}", file=sys.stderr)
         return None
 
 

@@ -1,4 +1,5 @@
 import json
+import sys
 from datetime import datetime, timezone
 import cloudscraper
 from html2text import html2text
@@ -28,17 +29,17 @@ def create_scraper(debug=False):
 scraper = create_scraper()
 
 
-def fetch_page(url, scraper=None):
+def fetch_page(url, scraper=None, timeout=30):
     """Fetch the raw HTML content from a URL."""
     if scraper is None:
         scraper = globals()["scraper"]
 
     try:
-        response = scraper.get(url)
+        response = scraper.get(url, timeout=timeout)
         response.raise_for_status()
         return response.text, response.url
     except Exception as e:
-        print(f"[red]Error fetching page:[/red] {e}")
+        print(f"Error fetching page: {e}", file=sys.stderr)
         return None, None
 
 
@@ -99,7 +100,7 @@ def convert_to_markdown(
                 )
 
     except Exception as e:
-        print(f"[red]Error converting to markdown:[/red] {e}")
+        print(f"Error converting to markdown: {e}", file=sys.stderr)
         # Fallback to original readability-based extraction
         result = extract_with_readability(
             html_content, url, output_format=content_format
@@ -197,7 +198,7 @@ def extract_favicons(html_content, base_url):
 
         return unique_favicons
     except Exception as e:
-        print(f"[red]Error extracting favicons:[/red] {e}")
+        print(f"Error extracting favicons: {e}", file=sys.stderr)
         return []
 
 
@@ -208,6 +209,7 @@ def fetch(
     include_comments=None,
     page_type=None,
     output_format="markdown",
+    timeout=30,
 ):
     """Main fetch function - either returns markdown or favicon URLs.
 
@@ -218,11 +220,12 @@ def fetch(
         include_comments: Override for comment inclusion (None = auto-detect)
         page_type: Manually specified page type (None = auto-detect)
         output_format: Output format - "markdown" or "txt" (default: "markdown")
+        timeout: HTTP request timeout in seconds (default: 30)
 
     Returns:
         Extracted content or favicon URLs
     """
-    html_content, final_url = fetch_page(url, scraper)
+    html_content, final_url = fetch_page(url, scraper, timeout=timeout)
     if html_content is None:
         return None
 
