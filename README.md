@@ -1,15 +1,16 @@
 # Fetch
 
-A command-line tool to fetch web pages and convert them to clean, readable text, or extract favicon URLs.
+A command-line tool to fetch web pages and convert them to clean, readable text. Supports smart handling for GitHub and YouTube URLs.
 
 ## Features
 
 - Fetches web pages with proper browser headers to avoid blocking
-- Extracts main content using readability algorithms
-- Converts HTML to clean Markdown text
-- Preserves document titles
-- Handles various web page structures effectively
-- Supports raw output mode for debugging
+- Smart content extraction using `trafilatura` with `readability` fallback
+- Converts HTML to Markdown, plain text, or HTML
+- JSON output with metadata (title, description, links, images)
+- GitHub URLs: fetch READMEs, raw files, issues, and pull requests
+- YouTube URLs: extract video transcripts (no API key needed)
+- Configurable timeout, output to file, quiet mode for piping
 - Extract favicon URLs from web pages
 
 ## Installation
@@ -30,51 +31,119 @@ uv sync
 
 ## Usage
 
-### Command Line Interface
-
-After installation, you can use the `fetch` command directly:
-
 ```bash
 fetch <URL>
 ```
 
-**Examples:**
+**Basic examples:**
 
 ```bash
-# Fetch a web page and display as formatted text
+# Fetch a web page as Markdown
 fetch https://example.com
 
-# Fetch with raw output for debugging
-fetch --raw https://example.com
+# Output as plain text
+fetch --format txt https://example.com
 
-# Extract favicon URLs from a web page
+# Output as JSON with metadata
+fetch --format json https://example.com
+
+# Save to file
+fetch -o page.md https://example.com
+
+# Quiet mode (no status messages) — useful for piping
+fetch -q https://example.com | less
+
+# Limit output size
+fetch --max-size 5000 https://example.com
+
+# Set a longer timeout for slow sites
+fetch --timeout 60 https://slow-site.com
+
+# Extract favicon URLs
 fetch --favicon https://example.com
+
+# Debug with raw output
+fetch --raw https://example.com
 
 # Show version
 fetch --version
 ```
 
-## How It Works
+### GitHub URLs
 
-### Markdown Conversion Mode (Default)
+No API key required for public repos.
 
-1. **Fetch**: Uses `cloudscraper` to make HTTP requests with Chrome browser headers to avoid being blocked
-2. **Extract**: Uses `readability-lxml` to parse the HTML and extract the main content
-3. **Convert**: Uses `html2text` to convert the cleaned HTML to clean Markdown
-4. **Format**: Adds the document title as a heading and returns the formatted text
+```bash
+# Repo root — fetches the README
+fetch https://github.com/user/repo
 
-### Favicon Extraction Mode
+# Raw file via blob URL
+fetch https://github.com/user/repo/blob/main/src/main.py
 
-1. **Fetch**: Uses `cloudscraper` to make HTTP requests with Chrome browser headers to avoid being blocked
-2. **Parse**: Uses `BeautifulSoup` to parse the HTML and search for favicon references
-3. **Extract**: Finds multiple favicon sources including:
-   - `<link rel="icon">` and `<link rel="shortcut icon">` tags
-   - `<meta name="msapplication-TileImage">` tags
-4. **Convert**: Converts relative URLs to absolute URLs
-5. **Return**: Returns a numbered list of unique favicon URLs
+# Issue with comments
+fetch https://github.com/user/repo/issues/42
+
+# Pull request with review and issue comments
+fetch https://github.com/user/repo/pull/42
+```
+
+### YouTube Transcripts
+
+Extracts transcript text using `youtube-transcript-api`. No API key needed.
+
+```bash
+# Standard watch URL
+fetch https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# Short URL
+fetch https://youtu.be/dQw4w9WgXcQ
+
+# Shorts
+fetch https://www.youtube.com/shorts/abc123
+```
+
+Falls back to any available language and auto-translates to English when needed.
 
 ## Command Line Options
 
-- `--favicon`: Extract favicon URLs instead of converting to markdown
-- `--raw`: Include the full response data (for debugging)
-- `--version`: Show program version
+| Option | Description |
+|--------|-------------|
+| `URL` | URL to fetch |
+| `--format` | Output format: `markdown`, `txt`, `html`, `json` (default: `markdown`) |
+| `--output`, `-o` | Write output to FILE instead of stdout |
+| `--quiet`, `-q` | Suppress status messages |
+| `--timeout` | HTTP request timeout in seconds (default: 30) |
+| `--max-size` | Truncate output to N characters |
+| `--favicon` | Extract favicon URLs instead of content |
+| `--raw` | Include full response data (debugging) |
+| `--version` | Show version |
+
+### Content Extraction Options
+
+| Option | Description |
+|--------|-------------|
+| `--include-comments` | Force inclusion of comments (overrides auto-detection) |
+| `--exclude-comments` | Force exclusion of comments (overrides auto-detection) |
+| `--page-type` | Manually specify page type: `article`, `forum`, `qa`, `unknown` |
+
+## How It Works
+
+### Web Pages
+
+1. **Fetch** — Uses `cloudscraper` with Chrome headers to avoid blocking
+2. **Extract** — Extracts main content with `trafilatura`; falls back to `readability-lxml`
+3. **Convert** — Converts cleaned HTML to the requested output format
+4. **Format** — Returns the formatted result with title heading
+
+### GitHub URLs
+
+Detected before fetching HTML. Uses the GitHub API to fetch structured data:
+
+- **Repo root** — Fetches README via the GitHub API
+- **Blob paths** — Fetches raw file content from `raw.githubusercontent.com`
+- **Issues** — Fetches issue body and all comments via the GitHub API
+- **Pull requests** — Fetches PR details plus both review and issue comments
+
+### YouTube URLs
+
+Detected before fetching HTML. Uses `youtube-transcript-api` to fetch the video transcript and formats it as readable paragraphs.
