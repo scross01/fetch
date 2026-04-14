@@ -13,6 +13,7 @@ from .extractors import (
     should_exclude_comments,
 )
 from .classifier import classify_page
+from .github import handle_github_url
 from .types import PageType
 
 
@@ -225,17 +226,22 @@ def fetch(
     Returns:
         Extracted content or favicon URLs
     """
+    if not favicon:
+        github_result = handle_github_url(url, scraper, timeout=timeout)
+        if github_result is not None:
+            return github_result
+
     html_content, final_url = fetch_page(url, scraper, timeout=timeout)
     if html_content is None:
         return None
 
     if favicon:
         return extract_favicons(html_content, final_url or url)
-    else:
-        return convert_to_markdown(
-            html_content,
-            final_url or url,
-            include_comments=include_comments,
-            page_type=page_type,
-            output_format=output_format,
-        )
+
+    return convert_to_markdown(
+        html_content,
+        final_url or url,
+        include_comments=include_comments,
+        page_type=page_type,
+        output_format=output_format,
+    )
