@@ -10,6 +10,7 @@ A command-line tool to fetch web pages and convert them to clean, readable text.
 - JSON output with metadata (title, description, links, images)
 - GitHub URLs: fetch READMEs, raw files, issues, and pull requests
 - YouTube URLs: extract video transcripts (no API key needed)
+- RSS/Atom feeds: auto-detect feeds or discover them from page metadata
 - Configurable timeout, output to file, quiet mode for piping
 - Extract favicon URLs from web pages
 
@@ -104,6 +105,24 @@ fetch https://www.youtube.com/shorts/abc123
 
 Falls back to any available language and auto-translates to English when needed.
 
+### RSS/Atom Feeds
+
+Feeds are auto-detected when you fetch a feed URL directly. Use `--rss` to discover and fetch a feed from a regular web page.
+
+```bash
+# Auto-detected — URL is a feed
+fetch https://example.com/blog/feed.xml
+
+# Discover feed from a page's metadata
+fetch --rss https://example.com/blog
+
+# JSON output of feed entries
+fetch --format json https://example.com/feed.xml
+
+# Plain text
+fetch --format txt https://example.com/feed.xml
+```
+
 ## Command Line Options
 
 | Option | Description |
@@ -115,6 +134,7 @@ Falls back to any available language and auto-translates to English when needed.
 | `--timeout` | HTTP request timeout in seconds (default: 30) |
 | `--max-size` | Truncate output to N characters |
 | `--favicon` | Extract favicon URLs instead of content |
+| `--rss` | Look for RSS/Atom feed in page metadata and fetch it |
 | `--raw` | Include full response data (debugging) |
 | `--version` | Show version |
 
@@ -147,3 +167,12 @@ Detected before fetching HTML. Uses the GitHub API to fetch structured data:
 ### YouTube URLs
 
 Detected before fetching HTML. Uses `youtube-transcript-api` to fetch the video transcript and formats it as readable paragraphs.
+
+### RSS/Atom Feeds
+
+Two modes of operation:
+
+- **Auto-detect** — When the fetched content is an RSS or Atom feed (XML), it is parsed and formatted automatically, bypassing normal HTML extraction
+- **`--rss` flag** — Fetches a regular web page, discovers feed URLs from `<link rel="alternate">` tags in the HTML `<head>`, then fetches and formats the first valid feed
+
+Supports RSS 2.0, Atom, and RDF feeds. Output respects the `--format` flag (markdown, txt, html, json).

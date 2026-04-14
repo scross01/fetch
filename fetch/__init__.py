@@ -23,6 +23,11 @@ def main():
         help="extract favicon URLs instead of converting to markdown",
     )
     parser.add_argument(
+        "--rss",
+        action="store_true",
+        help="look for RSS/Atom feed in page metadata and fetch it",
+    )
+    parser.add_argument(
         "--max-size", type=int, metavar="N", help="truncate output to N characters"
     )
     parser.add_argument(
@@ -81,6 +86,9 @@ def main():
     if args.include_comments and args.exclude_comments:
         parser.error("Cannot specify both --include-comments and --exclude-comments")
 
+    if args.rss and args.favicon:
+        parser.error("Cannot specify both --rss and --favicon")
+
     logger.info(f"Fetching: {args.url}")
     scraper = create_scraper(debug=args.raw)
 
@@ -100,6 +108,7 @@ def main():
         args.url,
         scraper,
         favicon=args.favicon,
+        rss=args.rss,
         include_comments=include_comments,
         page_type=page_type,
         output_format=args.format,
