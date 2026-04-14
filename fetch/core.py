@@ -216,11 +216,12 @@ def fetch(
     page_type=None,
     output_format="markdown",
     timeout=30,
+    html=None,
 ):
     """Main fetch function - either returns markdown or favicon URLs.
 
     Args:
-        url: URL to fetch
+        url: URL to fetch (used as base URL when html is provided)
         scraper: Custom scraper instance (optional)
         favicon: If True, extract favicon URLs instead of content
         rss: If True, look for RSS/Atom feed in page metadata and fetch it
@@ -229,22 +230,27 @@ def fetch(
         page_type: Manually specified page type (None = auto-detect)
         output_format: Output format - "markdown" or "txt" (default: "markdown")
         timeout: HTTP request timeout in seconds (default: 30)
+        html: Pre-fetched HTML content; skips HTTP fetch and GitHub/YouTube dispatch
 
     Returns:
         Extracted content or favicon URLs
     """
-    if not favicon and not rss and not og:
-        github_result = handle_github_url(url, scraper, timeout=timeout)
-        if github_result is not None:
-            return github_result
+    if html is not None:
+        html_content = html
+        final_url = url
+    else:
+        if not favicon and not rss and not og:
+            github_result = handle_github_url(url, scraper, timeout=timeout)
+            if github_result is not None:
+                return github_result
 
-        youtube_result = handle_youtube_url(url)
-        if youtube_result is not None:
-            return youtube_result
+            youtube_result = handle_youtube_url(url)
+            if youtube_result is not None:
+                return youtube_result
 
-    html_content, final_url = fetch_page(url, scraper, timeout=timeout)
-    if html_content is None:
-        return None
+        html_content, final_url = fetch_page(url, scraper, timeout=timeout)
+        if html_content is None:
+            return None
 
     if favicon:
         return extract_favicons(html_content, final_url or url)

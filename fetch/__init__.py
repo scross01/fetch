@@ -79,14 +79,26 @@ def main():
         default="markdown",
         help="output format for extracted content (default: markdown)",
     )
+    content_group.add_argument(
+        "--html",
+        action="store_true",
+        help="treat stdin as raw HTML content to convert (use URL arg as base URL)",
+    )
 
     args = parser.parse_args()
 
     log_level = logging.WARNING if args.quiet else logging.INFO
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
 
-    if not args.url:
-        parser.error("URL is required")
+    has_stdin = not sys.stdin.isatty()
+
+    if args.html:
+        if not has_stdin:
+            parser.error("--html requires input on stdin (pipe HTML content)")
+        if args.favicon:
+            parser.error("Cannot use --html with --favicon")
+        if args.rss:
+            parser.error("Cannot use --html with --rss")
 
     # Validate conflicting options
     if args.include_comments and args.exclude_comments:
@@ -101,7 +113,6 @@ def main():
     if args.og and args.rss:
         parser.error("Cannot specify both --og and --rss")
 
-    logger.info(f"Fetching: {args.url}")
     scraper = create_scraper(debug=args.raw)
 
     # Parse page type if specified
@@ -116,17 +127,78 @@ def main():
     elif args.exclude_comments:
         include_comments = False
 
-    result = fetch(
-        args.url,
-        scraper,
-        favicon=args.favicon,
-        rss=args.rss,
-        og=args.og,
-        include_comments=include_comments,
-        page_type=page_type,
-        output_format=args.format,
-        timeout=args.timeout,
-    )
+    if args.html:
+        html_content = sys.stdin.read()
+        base_url = args.url or "stdin://local"
+        logger.info(f"Converting HTML from stdin (base: {base_url})")
+        result = fetch(
+            base_url,
+            scraper,
+            og=args.og,
+            include_comments=include_comments,
+            page_type=page_type,
+            output_format=args.format,
+            html=html_content,
+        )
+    elif has_stdin:
+        stdin_input = sys.stdin.read().strip()
+        if not stdin_input:
+            parser.error("No input on stdin")
+        urls = [line.strip() for line in stdin_input.splitlines() if line.strip()]
+        if not urls:
+            parser.error("No URLs found on stdin")
+        if not args.url and len(urls) == 1:
+            args.url = urls[0]
+            logger.info(f"Fetching: {args.url}")
+            result = fetch(
+                args.url,
+                scraper,
+                favicon=args.favicon,
+                rss=args.rss,
+                og=args.og,
+                include_comments=include_comments,
+                page_type=page_type,
+                output_format=args.format,
+                timeout=args.timeout,
+            )
+        else:
+            target_urls = urls
+            if args.url:
+                target_urls = [args.url] + urls
+            results = []
+            for i, target_url in enumerate(target_urls):
+                if i > 0:
+                    results.append("\n---\n")
+                logger.info(f"Fetching: {target_url}")
+                r = fetch(
+                    target_url,
+                    scraper,
+                    favicon=args.favicon,
+                    rss=args.rss,
+                    og=args.og,
+                    include_comments=include_comments,
+                    page_type=page_type,
+                    output_format=args.format,
+                    timeout=args.timeout,
+                )
+                if r is not None:
+                    results.append(str(r) if args.favicon else r)
+            result = "\n".join(results) if results else None
+    elif args.url:
+        logger.info(f"Fetching: {args.url}")
+        result = fetch(
+            args.url,
+            scraper,
+            favicon=args.favicon,
+            rss=args.rss,
+            og=args.og,
+            include_comments=include_comments,
+            page_type=page_type,
+            output_format=args.format,
+            timeout=args.timeout,
+        )
+    else:
+        parser.error("URL is required (provide as argument or pipe URLs on stdin)")
 
     if result:
         if args.favicon:

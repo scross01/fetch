@@ -12,6 +12,7 @@ A command-line tool to fetch web pages and convert them to clean, readable text.
 - YouTube URLs: extract video transcripts (no API key needed)
 - RSS/Atom feeds: auto-detect feeds or discover them from page metadata
 - Open Graph metadata: extract og: tags from any web page
+- Stdin piping: pipe URLs or raw HTML content via stdin
 - Configurable timeout, output to file, quiet mode for piping
 - Extract favicon URLs from web pages
 
@@ -69,6 +70,33 @@ fetch --raw https://example.com
 
 # Show version
 fetch --version
+```
+
+### Stdin Piping
+
+Pipe URLs or raw HTML on stdin:
+
+```bash
+# Pipe a URL
+echo "https://example.com" | fetch
+
+# Pipe multiple URLs (results separated by ---)
+printf '%s\n' "https://example.com" "https://another.com" | fetch -q
+
+# Pipe raw HTML from another command
+curl -s https://example.com | fetch --html
+
+# Pipe an HTML file
+cat page.html | fetch --html
+
+# Pipe HTML with a base URL for resolving relative links
+cat page.html | fetch --html https://example.com
+
+# Pipe HTML and extract Open Graph metadata
+cat page.html | fetch --html --og
+
+# Combine with other flags
+curl -s https://example.com | fetch --html --format json -q
 ```
 
 ### GitHub URLs
@@ -154,6 +182,7 @@ Extracts tags like `og:title`, `og:description`, `og:image`, `og:type`, `og:url`
 | `--favicon` | Extract favicon URLs instead of content |
 | `--rss` | Look for RSS/Atom feed in page metadata and fetch it |
 | `--og` | Extract Open Graph metadata from the page |
+| `--html` | Treat stdin as raw HTML content to convert |
 | `--raw` | Include full response data (debugging) |
 | `--version` | Show version |
 
@@ -199,3 +228,11 @@ Supports RSS 2.0, Atom, and RDF feeds. Output respects the `--format` flag (mark
 ### Open Graph Metadata
 
 Fetches the page HTML and extracts all `<meta property="og:*">` tags. Relative URLs in fields like `og:image` and `og:url` are resolved to absolute URLs. Output respects the `--format` flag (markdown, txt, html, json).
+
+### Stdin Piping
+
+Three modes when stdin is piped:
+
+- **`--html` flag** — Stdin is treated as raw HTML content. Skips HTTP fetching entirely and runs the extraction pipeline directly. An optional positional URL argument serves as the base URL for resolving relative links (defaults to `stdin://local`). Works with `--og` and all `--format` options.
+- **URL piping** — Each line of stdin is treated as a URL and fetched individually. Multiple URLs produce results separated by a `---` divider.
+- **Positional URL + stdin URLs** — If both a positional URL argument and piped URLs are provided, the positional URL is fetched first, followed by the piped URLs.
