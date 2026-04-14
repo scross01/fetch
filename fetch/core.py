@@ -14,6 +14,7 @@ from .extractors import (
 )
 from .classifier import classify_page
 from .github import handle_github_url
+from .youtube import handle_youtube_url
 from .types import PageType
 
 
@@ -230,6 +231,10 @@ def fetch(
         github_result = handle_github_url(url, scraper, timeout=timeout)
         if github_result is not None:
             return github_result
+
+        youtube_result = handle_youtube_url(url)
+        if youtube_result is not None:
+            return youtube_result
 
     html_content, final_url = fetch_page(url, scraper, timeout=timeout)
     if html_content is None:
