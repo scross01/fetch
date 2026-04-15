@@ -1,11 +1,22 @@
 import re
 import sys
+import time
+from typing import Any
+
+import cloudscraper
 
 GITHUB_URL_RE = re.compile(r"^https?://(?:www\.)?github\.com/([^/]+)/([^/]+)(/.*)?$")
 
 
 class GithubResult(str):
-    def __new__(cls, content, title="", description="", links=None, images=None):
+    def __new__(
+        cls,
+        content: str,
+        title: str = "",
+        description: str = "",
+        links: list[dict[str, str]] | None = None,
+        images: list[dict[str, str]] | None = None,
+    ):
         obj = super().__new__(cls, content)
         obj.title = title
         obj.description = description
@@ -18,7 +29,7 @@ _LINK_RE = re.compile(r"(?:^|[^!])\[([^\]]+)\]\(([^)]+)\)", re.MULTILINE)
 _IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 
 
-def _extract_links(md):
+def _extract_links(md: str) -> list[dict[str, str]]:
     if not md:
         return []
     seen = set()
@@ -31,7 +42,7 @@ def _extract_links(md):
     return links
 
 
-def _extract_images(md):
+def _extract_images(md: str) -> list[dict[str, str]]:
     if not md:
         return []
     seen = set()
@@ -44,7 +55,7 @@ def _extract_images(md):
     return images
 
 
-def _parse(url):
+def _parse(url: str) -> tuple[str, str, str] | None:
     m = GITHUB_URL_RE.match(url)
     if not m:
         return None
@@ -54,23 +65,44 @@ def _parse(url):
     return owner, repo, path
 
 
-def _api_get(scraper, url, timeout):
+def _api_get(
+    scraper: cloudscraper.CloudScraper, url: str, timeout: int
+) -> dict[str, Any]:
     response = scraper.get(
         url,
         timeout=timeout,
         headers={"Accept": "application/vnd.github.v3+json"},
     )
+    remaining = response.headers.get("X-RateLimit-Remaining", "")
+    reset_time = response.headers.get("X-RateLimit-Reset", "")
+    if remaining == "0" and reset_time:
+        wait_seconds = int(reset_time) - int(time.time()) + 1
+        if wait_seconds > 0:
+            print(
+                f"GitHub API rate limited. Waiting {wait_seconds}s...", file=sys.stderr
+            )
+            time.sleep(wait_seconds)
+            response = scraper.get(
+                url,
+                timeout=timeout,
+                headers={"Accept": "application/vnd.github.v3+json"},
+            )
     response.raise_for_status()
     return response.json()
 
 
-def _fetch_raw(scraper, url, timeout):
+def _fetch_raw(scraper: cloudscraper.CloudScraper, url: str, timeout: int) -> str:
     response = scraper.get(url, timeout=timeout)
     response.raise_for_status()
     return response.text
 
 
-def _fetch_readme(owner, repo, scraper, timeout):
+def _fetch_readme(
+    owner: str,
+    repo: str,
+    scraper: cloudscraper.CloudScraper,
+    timeout: int,
+) -> GithubResult | None:
     try:
         data = _api_get(
             scraper,
@@ -96,7 +128,13 @@ def _fetch_readme(owner, repo, scraper, timeout):
         return None
 
 
-def _fetch_raw_file(owner, repo, ref_path, scraper, timeout):
+def _fetch_raw_file(
+    owner: str,
+    repo: str,
+    ref_path: str,
+    scraper: cloudscraper.CloudScraper,
+    timeout: int,
+) -> str | None:
     raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{ref_path}"
     try:
         return _fetch_raw(scraper, raw_url, timeout)
@@ -105,7 +143,13 @@ def _fetch_raw_file(owner, repo, ref_path, scraper, timeout):
         return None
 
 
-def _fetch_issue(owner, repo, number, scraper, timeout):
+def _fetch_issue(
+    owner: str,
+    repo: str,
+    number: int,
+    scraper: cloudscraper.CloudScraper,
+    timeout: int,
+) -> GithubResult | None:
     try:
         issue = _api_get(
             scraper,
@@ -133,7 +177,13 @@ def _fetch_issue(owner, repo, number, scraper, timeout):
         return None
 
 
-def _fetch_pr(owner, repo, number, scraper, timeout):
+def _fetch_pr(
+    owner: str,
+    repo: str,
+    number: int,
+    scraper: cloudscraper.CloudScraper,
+    timeout: int,
+) -> GithubResult | None:
     try:
         pr = _api_get(
             scraper,
@@ -172,7 +222,9 @@ def _fetch_pr(owner, repo, number, scraper, timeout):
         return None
 
 
-def _format_item(item, comments, kind="Issue"):
+def _format_item(
+    item: dict[str, Any], comments: list[dict[str, Any]], kind: str = "Issue"
+) -> str:
     lines = []
     lines.append(f"# {item['title']}")
     lines.append("")
@@ -224,7 +276,9 @@ def _format_item(item, comments, kind="Issue"):
     return "\n".join(lines)
 
 
-def handle_github_url(url, scraper, timeout=30):
+def handle_github_url(
+    url: str, scraper: cloudscraper.CloudScraper, timeout: int = 30
+) -> GithubResult | None:
     parsed = _parse(url)
     if not parsed:
         return None

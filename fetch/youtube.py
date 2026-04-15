@@ -2,11 +2,13 @@ import re
 import sys
 from urllib.parse import parse_qs, urlparse
 
+import cloudscraper
+from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class YoutubeResult(str):
-    def __new__(cls, content, title="", description=""):
+    def __new__(cls, content: str, title: str = "", description: str = ""):
         obj = super().__new__(cls, content)
         obj.title = title
         obj.description = description
@@ -18,7 +20,7 @@ YOUTUBE_URL_RE = re.compile(
 )
 
 
-def _extract_video_id(url):
+def _extract_video_id(url: str) -> str | None:
     parsed = urlparse(url)
     host = parsed.hostname or ""
 
@@ -37,18 +39,18 @@ def _extract_video_id(url):
     return None
 
 
-def _fetch_metadata(video_id):
+def _fetch_metadata(
+    video_id: str, scraper: cloudscraper.CloudScraper | None = None
+) -> tuple[str, str]:
     title = ""
     description = ""
     try:
-        import urllib.request
-        from bs4 import BeautifulSoup
-
         url = f"https://www.youtube.com/watch?v={video_id}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read().decode("utf-8")
-        soup = BeautifulSoup(html, "html.parser")
+        if scraper is None:
+            scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
         og_title = soup.find("meta", attrs={"property": "og:title"})
         if og_title:
             title = og_title.get("content", "")
@@ -60,7 +62,7 @@ def _fetch_metadata(video_id):
     return title, description
 
 
-def _fetch_transcript(video_id):
+def _fetch_transcript(video_id: str) -> YoutubeResult | None:
     try:
         ytt_api = YouTubeTranscriptApi()
 
@@ -92,7 +94,7 @@ def _fetch_transcript(video_id):
         return None
 
 
-def _format_transcript(segments, video_id):
+def _format_transcript(segments, video_id: str) -> str:
     text_parts = []
     for snippet in segments:
         text = snippet.text.strip()
@@ -118,7 +120,7 @@ def _format_transcript(segments, video_id):
     return "\n".join(lines)
 
 
-def handle_youtube_url(url):
+def handle_youtube_url(url: str) -> YoutubeResult | None:
     if not YOUTUBE_URL_RE.match(url):
         return None
 

@@ -1,13 +1,16 @@
 import json
 import sys
 import urllib.parse
+from typing import Any
 
 from bs4 import BeautifulSoup
 
 _URL_FIELDS = {"og:image", "og:image:url", "og:url", "og:audio", "og:video"}
 
 
-def extract_og_metadata(html_content, base_url, output_format="markdown"):
+def extract_og_metadata(
+    html_content: str, base_url: str, output_format: str = "markdown"
+) -> str | None:
     soup = BeautifulSoup(html_content, "html.parser")
 
     og_data = {}
@@ -35,7 +38,7 @@ def extract_og_metadata(html_content, base_url, output_format="markdown"):
     return _format_og(og_data, output_format)
 
 
-def _format_og(data, output_format="markdown"):
+def _format_og(data: dict[str, Any], output_format: str = "markdown") -> str:
     formatters = {
         "markdown": _format_og_markdown,
         "txt": _format_og_text,
@@ -46,13 +49,13 @@ def _format_og(data, output_format="markdown"):
     return formatter(data)
 
 
-def _value_str(val):
+def _value_str(val: str | list[str]) -> str:
     if isinstance(val, list):
         return val[0]
     return val
 
 
-def _format_og_markdown(data):
+def _format_og_markdown(data: dict[str, Any]) -> str:
     lines = ["# Open Graph Metadata", ""]
 
     title = data.get("og:title")
@@ -121,7 +124,7 @@ def _format_og_markdown(data):
     return "\n".join(lines)
 
 
-def _format_og_text(data):
+def _format_og_text(data: dict[str, Any]) -> str:
     lines = []
     for key, val in sorted(data.items()):
         nice_key = key.replace("og:", "")
@@ -133,7 +136,7 @@ def _format_og_text(data):
     return "\n".join(lines)
 
 
-def _format_og_html(data):
+def _format_og_html(data: dict[str, Any]) -> str:
     parts = ["<h1>Open Graph Metadata</h1>", "<dl>"]
     for key, val in sorted(data.items()):
         nice_key = key.replace("og:", "")
@@ -152,7 +155,7 @@ def _format_og_html(data):
     return "\n".join(parts)
 
 
-def _format_og_json(data):
+def _format_og_json(data: dict[str, Any]) -> str:
     serializable = {}
     for key, val in data.items():
         serializable[key] = val

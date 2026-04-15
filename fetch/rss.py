@@ -2,12 +2,14 @@ import json
 import sys
 import urllib.parse
 from html import unescape
+from typing import Any
 
+import cloudscraper
 import feedparser
 from bs4 import BeautifulSoup
 
 
-def _find_feed_urls(html_content, base_url):
+def _find_feed_urls(html_content: str, base_url: str) -> list[str]:
     soup = BeautifulSoup(html_content, "html.parser")
     feed_urls = []
 
@@ -36,7 +38,7 @@ def _find_feed_urls(html_content, base_url):
     return unique
 
 
-def _is_feed_content(content):
+def _is_feed_content(content: str) -> bool:
     if not content or not content.strip():
         return False
     stripped = content.strip().lower()
@@ -53,14 +55,14 @@ def _is_feed_content(content):
     return False
 
 
-def _clean_html(text):
+def _clean_html(text: str) -> str:
     if not text:
         return ""
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text(separator=" ").strip()
 
 
-def _format_date(entry):
+def _format_date(entry: dict[str, Any]) -> str | None:
     for attr in ("published", "updated"):
         raw = entry.get(attr)
         if raw:
@@ -270,7 +272,7 @@ def _format_feed_json(feed):
     return json.dumps(feed_data, ensure_ascii=False, indent=2)
 
 
-def _format_feed(feed, output_format="markdown"):
+def _format_feed(feed: Any, output_format: str = "markdown") -> str:
     formatters = {
         "markdown": _format_feed_markdown,
         "txt": _format_feed_text,
@@ -281,7 +283,7 @@ def _format_feed(feed, output_format="markdown"):
     return formatter(feed)
 
 
-def handle_rss_content(content, output_format="markdown"):
+def handle_rss_content(content: str, output_format: str = "markdown") -> str | None:
     if not _is_feed_content(content):
         return None
     try:
@@ -293,11 +295,15 @@ def handle_rss_content(content, output_format="markdown"):
 
 
 def fetch_feed_from_html(
-    html_content, url, scraper, timeout=30, output_format="markdown"
-):
+    html_content: str,
+    url: str,
+    scraper: cloudscraper.CloudScraper,
+    timeout: int = 30,
+    output_format: str = "markdown",
+) -> str | None:
     feed_urls = _find_feed_urls(html_content, url)
     if not feed_urls:
-        print("No RSS/Atom feed found in page metadata", file=sys.stderr)
+        print("No RSS/Atom feed found in page", file=sys.stderr)
         return None
 
     for feed_url in feed_urls:
