@@ -34,7 +34,7 @@ What `curl` is to raw HTTP, `fetch` is to AI content retrieval — a single tool
 ### Using uv tool (Recommended)
 
 ```bash
-uv tool install https://github.com/scross01/fetch
+uv tool install https://github.com/scross01/fetch.git
 ```
 
 ### Development Installation
