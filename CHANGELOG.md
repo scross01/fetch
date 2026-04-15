@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.3.2
+
+- Fixed AttributeError when using `--format json` with YouTube URLs
+
 ## 0.3.1
 
 - Fixed error when calling fetch from a subprocess without piped input

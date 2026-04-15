@@ -140,11 +140,17 @@ def _convert_result(result, url, output_format, page_type_str):
             else ""
         )
         links = (
-            result.links if has_custom_attrs and isinstance(result.links, list) else []
+            result.links
+            if has_custom_attrs
+            and hasattr(result, "links")
+            and isinstance(result.links, list)
+            else []
         )
         images = (
             result.images
-            if has_custom_attrs and isinstance(result.images, list)
+            if has_custom_attrs
+            and hasattr(result, "images")
+            and isinstance(result.images, list)
             else []
         )
         return json.dumps(
