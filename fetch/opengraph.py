@@ -139,16 +139,12 @@ def _format_og_html(data):
         nice_key = key.replace("og:", "")
         if isinstance(val, list):
             for v in val:
-                if key in _URL_FIELDS or (
-                    key in ("og:image", "og:image:url") and v.startswith("http")
-                ):
+                if key in _URL_FIELDS:
                     parts.append(f'<dt>{nice_key}</dt><dd><a href="{v}">{v}</a></dd>')
                 else:
                     parts.append(f"<dt>{nice_key}</dt><dd>{v}</dd>")
         else:
-            if key in _URL_FIELDS or (
-                key in ("og:image", "og:image:url") and val.startswith("http")
-            ):
+            if key in _URL_FIELDS:
                 parts.append(f'<dt>{nice_key}</dt><dd><a href="{val}">{val}</a></dd>')
             else:
                 parts.append(f"<dt>{nice_key}</dt><dd>{val}</dd>")

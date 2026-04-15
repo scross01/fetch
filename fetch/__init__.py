@@ -182,7 +182,13 @@ def main():
                     timeout=args.timeout,
                 )
                 if r is not None:
-                    results.append(str(r) if args.favicon else r)
+                    if args.favicon:
+                        favicon_lines = []
+                        for j, favicon_url in enumerate(r, 1):
+                            favicon_lines.append(f"{j}. {favicon_url}")
+                        results.append("\n".join(favicon_lines))
+                    else:
+                        results.append(r)
             result = "\n".join(results) if results else None
     elif args.url:
         logger.info(f"Fetching: {args.url}")

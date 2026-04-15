@@ -1,6 +1,19 @@
 # Fetch
 
-A command-line tool to fetch web pages and convert them to clean, readable text. Supports smart handling for GitHub and YouTube URLs.
+**The lightweight, zero-config, AI-optimized web fetch CLI.**
+
+No browser needed. No API keys. No Docker. Just `fetch <url>`.
+
+What `curl` is to raw HTTP, `fetch` is to AI content retrieval — a single tool that turns any URL into clean, structured content ready for LLMs, scripts, and pipelines.
+
+## Why Fetch?
+
+- **Instant startup** — No Playwright download, no Docker pull. Runs immediately.
+- **Zero config** — No API keys, no auth tokens, no browser setup. Everything works locally out of the box.
+- **Smart extraction** — Automatically classifies pages (articles, forums, Q&A) and picks the right extraction strategy.
+- **AI-first output** — Structured JSON with metadata, link references, and clean Markdown designed for LLM consumption.
+- **Universal URL handling** — Web pages, GitHub repos, YouTube videos, RSS feeds. One tool, every source.
+- **Pipe-friendly** — Clean stdout output built for `|` chaining with other tools and AI workflows.
 
 ## Features
 

@@ -87,7 +87,7 @@ def extract_with_trafilatura(
                 return result
             else:
                 if title:
-                    return f"# {title}\n\n{result}"
+                    return f"{title}\n\n{result}"
                 return result
         else:
             return extract_with_readability(

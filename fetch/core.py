@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from datetime import datetime, timezone
 import cloudscraper
@@ -113,6 +114,54 @@ def convert_to_markdown(
     if output_format == "json":
         return _build_json(html_content, url, result, page_type)
 
+    return result
+
+
+def _convert_result(result, url, output_format, page_type_str):
+    if output_format == "markdown":
+        return result
+    if output_format == "txt":
+        result = re.sub(r"^#{1,6}\s+", "", result, flags=re.MULTILINE)
+        result = re.sub(r"\*\*([^*]+)\*\*", r"\1", result)
+        return result
+    if output_format == "html":
+        return f"<pre>{result}</pre>"
+    if output_format == "json":
+        title = (
+            result.title
+            if hasattr(result, "title") and isinstance(result.title, str)
+            else ""
+        )
+        description = (
+            result.description
+            if hasattr(result, "description") and isinstance(result.description, str)
+            else ""
+        )
+        links = (
+            result.links
+            if hasattr(result, "links") and isinstance(result.links, list)
+            else []
+        )
+        images = (
+            result.images
+            if hasattr(result, "images") and isinstance(result.images, list)
+            else []
+        )
+        return json.dumps(
+            {
+                "url": url,
+                "title": title,
+                "description": description,
+                "content": result or "",
+                "page_type": page_type_str,
+                "links": links,
+                "images": images,
+                "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "content_length": len(result) if result else 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
     return result
 
 
@@ -242,11 +291,11 @@ def fetch(
         if not favicon and not rss and not og:
             github_result = handle_github_url(url, scraper, timeout=timeout)
             if github_result is not None:
-                return github_result
+                return _convert_result(github_result, url, output_format, "github")
 
             youtube_result = handle_youtube_url(url)
             if youtube_result is not None:
-                return youtube_result
+                return _convert_result(youtube_result, url, output_format, "youtube")
 
         html_content, final_url = fetch_page(url, scraper, timeout=timeout)
         if html_content is None:

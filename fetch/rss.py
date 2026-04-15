@@ -1,18 +1,10 @@
 import json
 import sys
 import urllib.parse
-from datetime import datetime, timezone
 from html import unescape
 
 import feedparser
 from bs4 import BeautifulSoup
-
-_FEED_TYPES = {
-    "rss",
-    "atom",
-    "rdf",
-    "jsonfeed",
-}
 
 
 def _find_feed_urls(html_content, base_url):

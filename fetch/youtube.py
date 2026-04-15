@@ -5,6 +5,14 @@ from urllib.parse import parse_qs, urlparse
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
+class YoutubeResult(str):
+    def __new__(cls, content, title="", description=""):
+        obj = super().__new__(cls, content)
+        obj.title = title
+        obj.description = description
+        return obj
+
+
 YOUTUBE_URL_RE = re.compile(
     r"^https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch|shorts)|youtu\.be/)"
 )
@@ -27,6 +35,29 @@ def _extract_video_id(url):
         return parsed.path.split("/")[2]
 
     return None
+
+
+def _fetch_metadata(video_id):
+    title = ""
+    description = ""
+    try:
+        import urllib.request
+        from bs4 import BeautifulSoup
+
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode("utf-8")
+        soup = BeautifulSoup(html, "html.parser")
+        og_title = soup.find("meta", attrs={"property": "og:title"})
+        if og_title:
+            title = og_title.get("content", "")
+        og_desc = soup.find("meta", attrs={"property": "og:description"})
+        if og_desc:
+            description = og_desc.get("content", "")
+    except Exception:
+        pass
+    return title, description
 
 
 def _fetch_transcript(video_id):
@@ -53,18 +84,15 @@ def _fetch_transcript(video_id):
                 print("No transcript available for this video", file=sys.stderr)
                 return None
 
-        return _format_transcript(segments, video_id)
+        content = _format_transcript(segments, video_id)
+        title, description = _fetch_metadata(video_id)
+        return YoutubeResult(content, title=title, description=description)
     except Exception as e:
         print(f"Error fetching transcript: {e}", file=sys.stderr)
         return None
 
 
 def _format_transcript(segments, video_id):
-    lines = []
-    lines.append(f"# YouTube Transcript")
-    lines.append(f"https://youtube.com/watch?v={video_id}")
-    lines.append("")
-
     text_parts = []
     for snippet in segments:
         text = snippet.text.strip()
@@ -74,6 +102,7 @@ def _format_transcript(segments, video_id):
     full_text = " ".join(text_parts)
     sentences = re.split(r"(?<=[.!?])\s+", full_text)
 
+    lines = []
     paragraph = []
     for sentence in sentences:
         paragraph.append(sentence)
