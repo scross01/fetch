@@ -92,9 +92,13 @@ def main():
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
 
     has_stdin = not sys.stdin.isatty()
+    stdin_input = None
+    if has_stdin:
+        stdin_input = sys.stdin.read().strip()
+        has_stdin = bool(stdin_input)
 
     if args.html:
-        if not has_stdin:
+        if not stdin_input:
             parser.error("--html requires input on stdin (pipe HTML content)")
         if args.favicon:
             parser.error("Cannot use --html with --favicon")
@@ -129,7 +133,7 @@ def main():
         include_comments = False
 
     if args.html:
-        html_content = sys.stdin.read()
+        html_content = stdin_input
         base_url = args.url or "stdin://local"
         logger.info(f"Converting HTML from stdin (base: {base_url})")
         result = fetch(
@@ -142,9 +146,6 @@ def main():
             html=html_content,
         )
     elif has_stdin:
-        stdin_input = sys.stdin.read().strip()
-        if not stdin_input:
-            parser.error("No input on stdin")
         urls = [line.strip() for line in stdin_input.splitlines() if line.strip()]
         if not urls:
             parser.error("No URLs found on stdin")

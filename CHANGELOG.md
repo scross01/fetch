@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.3.1
+
+- Fixed error when calling fetch from a subprocess without piped input
+
 ## 0.3.0
 
 - Added `--format` option for markdown, txt, html, or json output
