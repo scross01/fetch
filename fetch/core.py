@@ -127,24 +127,24 @@ def _convert_result(result, url, output_format, page_type_str):
     if output_format == "html":
         return f"<pre>{result}</pre>"
     if output_format == "json":
+        from .github import GithubResult
+        from .youtube import YoutubeResult
+
+        has_custom_attrs = isinstance(result, (GithubResult, YoutubeResult))
         title = (
-            result.title
-            if hasattr(result, "title") and isinstance(result.title, str)
-            else ""
+            result.title if has_custom_attrs and isinstance(result.title, str) else ""
         )
         description = (
             result.description
-            if hasattr(result, "description") and isinstance(result.description, str)
+            if has_custom_attrs and isinstance(result.description, str)
             else ""
         )
         links = (
-            result.links
-            if hasattr(result, "links") and isinstance(result.links, list)
-            else []
+            result.links if has_custom_attrs and isinstance(result.links, list) else []
         )
         images = (
             result.images
-            if hasattr(result, "images") and isinstance(result.images, list)
+            if has_custom_attrs and isinstance(result.images, list)
             else []
         )
         return json.dumps(

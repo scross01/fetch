@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import sys
 from .core import fetch, create_scraper
 from .__version__ import __version__
@@ -220,9 +221,29 @@ def main():
             output_text = result
 
         if args.output:
-            with open(args.output, "w") as f:
-                f.write(output_text)
-                f.write("\n")
+            output_path = os.path.abspath(args.output)
+            if os.path.isdir(output_path):
+                print(
+                    f"Error: Output path '{args.output}' is a directory",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.isdir(output_dir):
+                print(
+                    f"Error: Directory '{output_dir}' does not exist", file=sys.stderr
+                )
+                sys.exit(1)
+            try:
+                with open(args.output, "w") as f:
+                    f.write(output_text)
+                    f.write("\n")
+            except PermissionError:
+                print(
+                    f"Error: Permission denied writing to '{args.output}'",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
         else:
             print(output_text)
 

@@ -217,6 +217,7 @@ def _fetch_pr(
         )
     except Exception as e:
         if "404" in str(e):
+            print(f"PR #{number} not found, fetching as issue...", file=sys.stderr)
             return _fetch_issue(owner, repo, number, scraper, timeout)
         print(f"Error fetching pull request: {e}", file=sys.stderr)
         return None
